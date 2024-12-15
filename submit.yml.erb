@@ -1,29 +1,36 @@
 <%
-   pwd_cfg = "c.NotebookApp.password=u\'sha1:${SALT}:${PASSWORD_SHA1}\'"
-   host_port_cfg = "c.NotebookApp.base_url=\'/node/${HOST_CFG}/${PORT_CFG}/\'"
+    pwd_cfg = "c.NotebookApp.password=u\'sha1:${SALT}:${PASSWORD_SHA1}\'"
+    configmap_filename = "ondemand_config.py"
+    configmap_data = "c.NotebookApp.port = 8080"
+    utility_img = "ohiosupercomputer/ood-k8s-utils"
+    user = OodSupport::User.new
+    File.open("#{Dir.home}/.kube/dynamic_config", 'w') do |file|
+      file.write(kubeconf)
+    end
+    kube_host = YAML.safe_load(kubeconf).symbolize_keys.fetch(:clusters)[0].fetch("cluster").fetch("server")
+    match = kube_host.match(%r{https://([^:]+)})
+    host_ip = match[1] if match
 
-   configmap_filename = "ondemand_config.py"
-   configmap_data = "c.NotebookApp.port = 8080"
-   utility_img = "docker-registry.osc.edu/ondemand/ood-k8s-utils:v1.0.0"
-
-   user = OodSupport::User.new
+    host_port_cfg = "c.NotebookApp.base_url=\'/node/#{host_ip}/${PORT_CFG}/\'"
 %>
 ---
+cluster: "42-dynamic-kube"
 script:
   accounting_id: "<%= account %>"
   wall_time: "<%= wall_time.to_i * 3600 %>"
   native:
+    host_ip: "<%= host_ip%>"
     container:
       name: "jupyter"
-      image: "docker-registry.osc.edu/ondemand/scipy-notebook:python-3.9.2"
-      command: "/usr/local/bin/start.sh /opt/conda/bin/jupyter notebook --config=/ood/ondemand_config.py"
-      working_dir: "<%= Etc.getpwnam(ENV['USER']).dir %>"
+      image: "jupyter/scipy-notebook:latest"
+      command: ["/bin/sh",  "-c", "/usr/local/bin/start.sh /opt/conda/bin/jupyter notebook --config=/ood/ondemand_config.py"]
+      working_dir: "/home/ubuntu"
       restart_policy: 'OnFailure'
       env:
-        NB_UID: "<%= user.uid %>"
-        NB_USER: "<%= user.name %>"
-        NB_GID: "<%= user.group.id %>"
-        HOME: "<%= user.home %>"
+        NB_UID:  "1000"
+        NB_USER: "ubuntu"
+        NB_GID: "1000"
+        HOME: "/home/ubuntu"
       port: "8080"
       cpu: "<%= cpu %>"
       memory: "<%= memory %>Gi"
@@ -38,15 +45,15 @@ script:
             c.Application.log_level = 'DEBUG'
           mount_path: '/ood'
     mounts:
-      - type: host
-        name: home
-        host_type: Directory
-        path: <%= user.home %>
-        destination_path: <%= user.home %>
+    - type: host
+      name: home
+      host_type: Directory
+      path:  "/home/ubuntu"
+      destination_path: "/home/ubuntu"
     init_containers:
     - name: "init-secret"
       image: "<%= utility_img %>"
-      command: 
+      command:
       - "/bin/save_passwd_as_secret"
       - "user-<%= user.name %>"
     - name: "add-passwd-to-cfg"
@@ -61,3 +68,4 @@ script:
       - "/bin/bash"
       - "-c"
       - "source /bin/find_host_port; /bin/add_line_to_configmap \\\"<%= host_port_cfg %>\\\" <%= configmap_filename %>"
+                                                                                                                                                                                                                                                                      82,1          Bot 

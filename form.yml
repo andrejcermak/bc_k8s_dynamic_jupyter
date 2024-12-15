@@ -1,16 +1,23 @@
 ---
-cluster:
-  - "kubernetes"
-  - "kubernetes-test"
-  - "kubernetes-dev"
-
 form:
+  - wall_time
+  - kubeconf
   - account
   - cpu
   - memory
-  - wall_time
 
 attributes:
+  wall_time:
+    widget: number_field
+    label: "Hours"
+    min: 1
+    value: 1
+  kubeconf:
+    widget: "text_area"
+    label: "Your kubeconf"
+    value: "Insert kubeconf"
+    help: |
+      Get your kubeconf either from your own k8s cluster, or create one using OOD.
   cpu:
     widget: number_field
     min: 1
@@ -23,8 +30,3 @@ attributes:
     max: 12
     label: "Memory (GB)"
     required: true
-  wall_time:
-    widget: number_field
-    label: "Hours"
-    min: 1
-    value: 1

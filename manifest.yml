@@ -1,7 +1,7 @@
 ---
-name: Jupyter (Kubernetes)
+name: Jupyter Notebook (k8s)
 category: Interactive Apps
 subcategory: Servers
 role: batch_connect
-description: |
-  This app will launch Jupyter in a Kubernetes cluster.
+description: "This app will launch jupyter notebook in your Kubernetes cluster.\r\n"
+icon: ''
